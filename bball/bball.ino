@@ -14,7 +14,7 @@ decode_results remoteInput;
 int score = 0;
 int startTime = 0;
 int endTime = 0;
-bool gameInProgress = false;
+bool gameInProgress = false; // Used to control physical timer and keep track of game state
 
 
 // Display
@@ -23,6 +23,7 @@ LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
 // Timer 
 Servo timer;
 int timerAngle = 180;
+const int timerResetAngle = 180;
 
 
 
@@ -34,9 +35,13 @@ void startGame() {
   score = 0;
   startTime = millis() / 1000;
   endTime = startTime + gameTime;
-  gameInProgress = true;
+  timerAngle = timerResetAngle;
+  timer.write(timerResetAngle);
 
-  // TODO - start timer
+  gameInProgress = true;
+  // Here is the problem
+  
+
 
   Serial.print("start: ");
   Serial.println(startTime);
@@ -45,12 +50,14 @@ void startGame() {
 }
 
 void resetGame() {
+  Serial.println("Resetting game");
   score = 0;
   startTime = 0;
   endTime = 0;
   gameInProgress = false;
 
-  // TODO - reset timer
+  // reset timer physical timer
+  timer.write(timerResetAngle);
 }
 
 void endGame() {
@@ -65,7 +72,7 @@ void endGame() {
         Serial.println(score);
 
         resetGame();
-    }  
+    }
   }
   
 }
@@ -73,16 +80,19 @@ void endGame() {
 
 // Utilliy functions -----------------------------------------------------------------------------------------------
 void spinTimer() {
-   timerAngle -= 1;
-    if (timerAngle == 0) {
-        timerAngle = 180; 
-    }
+   if (gameInProgress) {
+      timerAngle -= 1;
+      if (timerAngle == 0) {
+          timerAngle = 180; 
+      }
+     
+//     Serial.print(timerAngle);
+     timer.write(timerAngle);
+    
+     // 180 degrees/ 60sec = 3 degrees/sec   = 1 degree every 0.33 seconds
+     delay(50); 
+   }
    
-   Serial.print(timerAngle);
-   timer.write(timerAngle);
-
-   // 180 degrees/ 60sec = 3 degrees/sec   = 1 degree every 0.33 seconds
-   delay(333);
 }
 
 void incrementScore() {
@@ -104,22 +114,32 @@ void listenToRemoteInput() {
   */
   
   if (gameRemote.decode(&remoteInput)) {
-      Serial.println(remoteInput.value);
+//      Serial.println(remoteInput.value);
       if(remoteInput.value == 16724175) { // 1 button pressed (start score attack)
           startGame();
+      }
+
+      if(remoteInput.value == 16753245) { // Power button pressed (reset game)
+          resetGame();
+      }
+
+      if(remoteInput.value == 16718055) { // 2 button pressed (start time attack) 
+          Serial.println("Start time attack");  
       }
   }
   gameRemote.resume();
 
 }
 
-
+// RUN FUNCTIONS --------------------------------------------------------------------------------
 void setup() {
   // Serial logging
   Serial.begin(9600);
   
   lcd.begin(16, 2);
-  lcd.print("Score: ");
+  lcd.print("Welcome! ");
+  lcd.setCursor(0, 1);
+  lcd.print("1-Score Attack, 2-Time Attack");
 
   // Attach physical timer and send angle to 0
   timer.attach(6);
@@ -153,5 +173,5 @@ void loop() {
   
 
   // Move timer
-//  spinTimer();
+  spinTimer();
 }
