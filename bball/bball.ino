@@ -2,11 +2,13 @@
 #include <LiquidCrystal.h>
 #include <Servo.h>
 #include <IRremote.h>
+#include <pitches.h>
 
 // Variables -----------------------------------------------------------------------------------------------
 // Game control
-int buttonPin = 5; // temp variable to represent ball going in
+const int buttonPin = 5; // temp variable to represent ball going in
 const int remotePin = 4;
+const int buzzerPin = 3;
 IRrecv gameRemote(remotePin);
 decode_results remoteInput;
 
@@ -39,9 +41,6 @@ void startGame() {
   timer.write(timerResetAngle);
 
   gameInProgress = true;
-  // Here is the problem
-  
-
 
   Serial.print("start: ");
   Serial.println(startTime);
@@ -95,11 +94,23 @@ void spinTimer() {
    
 }
 
+bool incremented = false;
+int incrementedTime = 0;
+float incrementDelay = 200;
 void incrementScore() {
-  score += 1;
-  lcd.print(score);
+  if(millis() > incrementedTime + incrementDelay) {
+    incremented = false;  
+  }
+  
+  if (!incremented) {
+    score += 1;
+    lcd.print(score);  
+    incremented = true;
+    incrementedTime = millis();
+    tone(buzzerPin, NOTE_C5, 200);
+  }
 
-  return;                   
+  
 
 }
 
@@ -121,10 +132,12 @@ void listenToRemoteInput() {
 
       if(remoteInput.value == 16753245) { // Power button pressed (reset game)
           resetGame();
+          tone(buzzerPin, NOTE_C5, 500);
       }
 
       if(remoteInput.value == 16718055) { // 2 button pressed (start time attack) 
           Serial.println("Start time attack");  
+          digitalWrite(buzzerPin, HIGH);
       }
   }
   gameRemote.resume();
@@ -135,11 +148,12 @@ void listenToRemoteInput() {
 void setup() {
   // Serial logging
   Serial.begin(9600);
-  
+
+  // Initial text
   lcd.begin(16, 2);
   lcd.print("Welcome! ");
   lcd.setCursor(0, 1);
-  lcd.print("1-Score Attack, 2-Time Attack");
+//  lcd.print("1-Score Attack, 2-Time Attack");
 
   // Attach physical timer and send angle to 0
   timer.attach(6);
@@ -148,7 +162,9 @@ void setup() {
   // Setup remote
   gameRemote.enableIRIn();
 
+  // Pins
   pinMode(buttonPin, INPUT_PULLUP);
+  pinMode(buzzerPin, OUTPUT);
 }
 
 
