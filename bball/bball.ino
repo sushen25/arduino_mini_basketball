@@ -9,8 +9,7 @@
 const int buttonPin = 5; // temp variable to represent ball going in
 const int remotePin = 4;
 const int buzzerPin = 3;
-IRrecv gameRemote(remotePin);
-decode_results remoteInput;
+
 
 // Game
 int score = 0;
@@ -99,7 +98,7 @@ int incrementedTime = 0;
 float incrementDelay = 200;
 void incrementScore() {
   if(millis() > incrementedTime + incrementDelay) {
-    incremented = false;  
+    incremented = false;
   }
   
   if (!incremented) {
@@ -123,25 +122,26 @@ void listenToRemoteInput() {
     pause/play - pause/play game
     
   */
-  
-  if (gameRemote.decode(&remoteInput)) {
-//      Serial.println(remoteInput.value);
-      if(remoteInput.value == 16724175) { // 1 button pressed (start score attack)
-          startGame();
-      }
 
-      if(remoteInput.value == 16753245) { // Power button pressed (reset game)
-          resetGame();
-          tone(buzzerPin, NOTE_C5, 500);
-      }
+  if (IrReceiver.decode()) {
+    int command = IrReceiver.decodedIRData.command;
+    Serial.print("command: ");
+    Serial.println(command);
+    if (command == 69) { // Power button pressed (reset game)
+        resetGame();  
+    }
 
-      if(remoteInput.value == 16718055) { // 2 button pressed (start time attack) 
-          Serial.println("Start time attack");  
-          digitalWrite(buzzerPin, HIGH);
-      }
+    if(command == 12) { // 1 button pressed (start score attack)
+        startGame();
+    }
+
+//    if(command == 24) { // 2 button pressed (start time attack) 
+//        Serial.println("Start time attack");  
+//        digitalWrite(buzzerPin, HIGH);
+//    }
+    
   }
-  gameRemote.resume();
-
+  IrReceiver.resume();
 }
 
 // RUN FUNCTIONS --------------------------------------------------------------------------------
@@ -159,15 +159,12 @@ void setup() {
   timer.attach(6);
   timer.write(timerAngle);
 
-  // Setup remote
-  gameRemote.enableIRIn();
 
   // Pins
+  IrReceiver.begin(remotePin, ENABLE_LED_FEEDBACK);
   pinMode(buttonPin, INPUT_PULLUP);
   pinMode(buzzerPin, OUTPUT);
 }
-
-
 
 
 void loop() {
