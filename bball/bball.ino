@@ -41,6 +41,31 @@ void startGame() {
 
   gameInProgress = true;
 
+  lcd.clear();
+  lcd.print("Welcome to score attack!");
+  for (int positionCounter = 0; positionCounter < 16; positionCounter++) {
+    // scroll one position left:
+    lcd.scrollDisplayLeft();
+    // wait a bit:
+    delay(200);
+  }
+
+  lcd.clear();
+  lcd.print("Begin in...");
+  lcd.setCursor(0, 1);
+  lcd.print("3");
+  delay(1000);
+  lcd.print("2");
+  delay(1000);
+  lcd.print("1");
+  delay(1000);
+  
+  lcd.setCursor(0, 0);
+  lcd.print("Score attack!");
+  lcd.setCursor(0, 1);
+  lcd.print("Score: 0");
+  
+
   Serial.print("start: ");
   Serial.println(startTime);
   Serial.print("End: ");
@@ -56,6 +81,13 @@ void resetGame() {
 
   // reset timer physical timer
   timer.write(timerResetAngle);
+
+  lcd.clear();
+  lcd.home();
+  lcd.print("Welcome! ");
+  lcd.setCursor(0, 1);
+  lcd.print("1-Score, 2-Time");
+  
 }
 
 void endGame() {
@@ -68,6 +100,7 @@ void endGame() {
         Serial.println("GAME OVER");
         Serial.print("Score: ");
         Serial.println(score);
+        delay(5000);
 
         resetGame();
     }
@@ -103,13 +136,12 @@ void incrementScore() {
   
   if (!incremented) {
     score += 1;
+    lcd.print("Score: ");
     lcd.print(score);  
     incremented = true;
     incrementedTime = millis();
     tone(buzzerPin, NOTE_C5, 200);
   }
-
-  
 
 }
 
@@ -153,7 +185,7 @@ void setup() {
   lcd.begin(16, 2);
   lcd.print("Welcome! ");
   lcd.setCursor(0, 1);
-//  lcd.print("1-Score Attack, 2-Time Attack");
+  lcd.print("1-Score, 2-Time");
 
   // Attach physical timer and send angle to 0
   timer.attach(6);
