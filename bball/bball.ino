@@ -3,12 +3,17 @@
 #include <Servo.h>
 #include <IRremote.h>
 #include <pitches.h>
+#include <SR04.h>
 
 // Variables -----------------------------------------------------------------------------------------------
 // Game control
 const int remotePin = 5;
 const int buzzerPin = 4;
 
+// ultrasonic sensor
+const int trigPin = 2;
+const int echoPin = 3;
+SR04 bucketSensor = SR04(echoPin, trigPin);
 
 // Game
 int score = 0;
@@ -30,7 +35,7 @@ const int timerResetAngle = 180;
 // Game functions -----------------------------------------------------------------------------------------------
 void startGame() {
   // time that the game will last 
-  int gameTime = 60;  // 30 sec game
+  int gameTime = 5;  // 30 sec game
   
   score = 0;
   timerAngle = timerResetAngle;
@@ -96,9 +101,23 @@ void endGame() {
 
     if (current_time >= endTime) {
         // Game over
-        Serial.println("GAME OVER");
-        Serial.print("Score: ");
-        Serial.println(score);
+        lcd.clear();
+        lcd.home();
+        lcd.setCursor(0, 0);
+        lcd.print("Game Over!");
+        lcd.setCursor(0, 1);
+        lcd.print("You scored ");
+        lcd.print(score);
+        lcd.print(" points!");
+        delay(1500);
+
+        for (int positionCounter = 0; positionCounter < (21 + 2); positionCounter++) {
+          // scroll one position left:
+          lcd.scrollDisplayLeft();
+          // wait a bit:
+          delay(200);
+        }
+
         delay(5000);
 
         resetGame();
@@ -155,6 +174,17 @@ void incrementScore() {
 
 }
 
+void detectBucket() {
+    if (gameInProgress) {
+        long distance = bucketSensor.Distance();
+        Serial.println(distance);
+        if (distance < 15) {
+            Serial.println("BUCKET");
+            incrementScore();
+        } 
+    }
+}
+
 void listenToRemoteInput() {
   /*
     Remote control mapping
@@ -207,7 +237,6 @@ void setup() {
   pinMode(buzzerPin, OUTPUT);
 }
 
-
 void loop() {
   // set the cursor to column 0, line 1
   // (note: line 1 is the second row, since counting begins with 0):
@@ -215,6 +244,9 @@ void loop() {
 
   // Remote input
   listenToRemoteInput();
+
+  // bucket sensor
+  detectBucket();
 
   // Check for gameEnd
   endGame();
