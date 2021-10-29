@@ -6,9 +6,8 @@
 
 // Variables -----------------------------------------------------------------------------------------------
 // Game control
-const int buttonPin = 5; // temp variable to represent ball going in
-const int remotePin = 4;
-const int buzzerPin = 3;
+const int remotePin = 5;
+const int buzzerPin = 4;
 
 
 // Game
@@ -31,15 +30,12 @@ const int timerResetAngle = 180;
 // Game functions -----------------------------------------------------------------------------------------------
 void startGame() {
   // time that the game will last 
-  int gameTime = 5;  // 30 sec game
+  int gameTime = 60;  // 30 sec game
   
   score = 0;
-  startTime = millis() / 1000;
-  endTime = startTime + gameTime;
   timerAngle = timerResetAngle;
   timer.write(timerResetAngle);
 
-  gameInProgress = true;
 
   lcd.clear();
   lcd.print("Welcome to score attack!");
@@ -59,6 +55,10 @@ void startGame() {
   delay(1000);
   lcd.print("1");
   delay(1000);
+
+  startTime = millis() / 1000;
+  endTime = startTime + gameTime;
+  gameInProgress = true;
   
   lcd.setCursor(0, 0);
   lcd.print("Score attack!");
@@ -87,7 +87,6 @@ void resetGame() {
   lcd.print("Welcome! ");
   lcd.setCursor(0, 1);
   lcd.print("1-Score, 2-Time");
-  
 }
 
 void endGame() {
@@ -110,36 +109,47 @@ void endGame() {
 
 
 // Utilliy functions -----------------------------------------------------------------------------------------------
+bool spun = false;
+unsigned long spunTime = 0;
+unsigned long spunDelay = 333; // 180 degrees/ 60sec = 3 degrees/sec  = 1 degree every 0.33 seconds
 void spinTimer() {
    if (gameInProgress) {
-      timerAngle -= 1;
-      if (timerAngle == 0) {
-          timerAngle = 180; 
+      unsigned long currentTime = millis();
+
+      if (currentTime > spunTime + spunDelay) {
+          spun = false;  
       }
-     
-//     Serial.print(timerAngle);
-     timer.write(timerAngle);
-    
-     // 180 degrees/ 60sec = 3 degrees/sec   = 1 degree every 0.33 seconds
-     delay(50); 
+
+      if(!spun) {
+          timerAngle -= 1; // 1 degree
+          if (timerAngle == 0) {
+              timerAngle = 180; 
+          }
+         
+          timer.write(timerAngle);
+
+          spun = true;
+          spunTime = currentTime;
+      }
    }
    
 }
 
 bool incremented = false;
-int incrementedTime = 0;
-float incrementDelay = 200;
+unsigned long incrementedTime = 0;
+unsigned long incrementDelay = 200;
 void incrementScore() {
-  if(millis() > incrementedTime + incrementDelay) {
+  unsigned long currentTime = millis();
+  if(currentTime > incrementedTime + incrementDelay) {
     incremented = false;
   }
   
-  if (!incremented) {
+  if (!incremented && gameInProgress) {
     score += 1;
     lcd.print("Score: ");
     lcd.print(score);  
     incremented = true;
-    incrementedTime = millis();
+    incrementedTime = currentTime;
     tone(buzzerPin, NOTE_C5, 200);
   }
 
@@ -194,7 +204,6 @@ void setup() {
 
   // Pins
   IrReceiver.begin(remotePin, ENABLE_LED_FEEDBACK);
-  pinMode(buttonPin, INPUT_PULLUP);
   pinMode(buzzerPin, OUTPUT);
 }
 
@@ -203,12 +212,6 @@ void loop() {
   // set the cursor to column 0, line 1
   // (note: line 1 is the second row, since counting begins with 0):
   lcd.setCursor(0, 1);
-  
-
-  // Ball goes in
-  if (digitalRead(buttonPin) == LOW) {
-     incrementScore();
-  }
 
   // Remote input
   listenToRemoteInput();
